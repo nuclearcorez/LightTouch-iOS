@@ -61,6 +61,19 @@ jobs:
           (cd "$RUNNER_TEMP/ipa" && /usr/bin/zip -qry "$GITHUB_WORKSPACE/LightTouch-iOS-unsigned.ipa" Payload)
           test -s "$GITHUB_WORKSPACE/LightTouch-iOS-unsigned.ipa"
 
+      - name: Verify IPA payload
+        run: |
+          set -euo pipefail
+          IPA="$GITHUB_WORKSPACE/LightTouch-iOS-unsigned.ipa"
+          unzip -t "$IPA"
+          mkdir -p "$RUNNER_TEMP/ipa-check"
+          unzip -q "$IPA" -d "$RUNNER_TEMP/ipa-check"
+          APP="$RUNNER_TEMP/ipa-check/Payload/LightTouch.app"
+          test -d "$APP"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist" | grep -Fx 'org.nuclearcorez.lighttouch'
+          /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist"
+          lipo -info "$APP/LightTouch"
+
       - name: Upload IPA
         uses: actions/upload-artifact@v6
         with:

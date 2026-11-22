@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 @main
 struct LightTouchApp: App {
@@ -117,7 +118,14 @@ private struct FactTile: View {
 
 private struct PrepareView: View {
     @State private var selectedProfile = DeviceProfile.supported[0].id
-    private var profile: DeviceProfile { DeviceProfile.supported.first(where: { $0.id == selectedProfile }) ?? DeviceProfile.supported[0] }
+    @State private var showImporter = false
+    @State private var showImportAlert = false
+    @State private var importedIPSW: String?
+    @State private var importMessage = ""
+
+    private var profile: DeviceProfile {
+        DeviceProfile.supported.first(where: { $0.id == selectedProfile }) ?? DeviceProfile.supported[0]
+    }
 
     var body: some View {
         NavigationStack {
@@ -128,18 +136,23 @@ private struct PrepareView: View {
                     ForEach(DeviceProfile.supported) { item in
                         Button { selectedProfile = item.id } label: {
                             HStack(spacing: 12) {
-                                Image(systemName: item.id == "ipad1" ? "ipad" : "iphone").font(.title2).frame(width: 42).foregroundStyle(selectedProfile == item.id ? .blue : .secondary)
+                                Image(systemName: item.id == "ipad1" ? "ipad" : "iphone")
+                                    .font(.title2).frame(width: 42)
+                                    .foregroundStyle(selectedProfile == item.id ? Color.blue : Color.gray)
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(item.name).font(.subheadline.weight(.semibold)).foregroundStyle(.primary)
                                     Text("Board: \(item.board)").font(.caption).foregroundStyle(.secondary)
                                 }
                                 Spacer()
-                                if selectedProfile == item.id { Image(systemName: "checkmark.circle.fill").foregroundStyle(.blue) }
+                                if selectedProfile == item.id {
+                                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.blue)
+                                }
                             }
                             .padding(14)
-                            .background(selectedProfile == item.id ? .blue.opacity(0.12) : .white.opacity(0.04), in: RoundedRectangle(cornerRadius: 14))
-                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(selectedProfile == item.id ? .blue.opacity(0.5) : .white.opacity(0.06), lineWidth: 1))
-                        }.buttonStyle(.plain)
+                            .background(selectedProfile == item.id ? Color.blue.opacity(0.12) : Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 14))
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(selectedProfile == item.id ? Color.blue.opacity(0.5) : Color.white.opacity(0.06), lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
                     }
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Known firmware profiles").font(.headline)
@@ -147,12 +160,57 @@ private struct PrepareView: View {
                     }
                     .padding(15).frame(maxWidth: .infinity, alignment: .leading)
                     .background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 14))
-                    Button {} label: { Label("Prepare device", systemImage: "arrow.down.to.line").frame(maxWidth: .infinity) }
-                        .buttonStyle(.borderedProminent).disabled(true)
-                    Text("Preparation is disabled until the iOS-compatible firmware pipeline and QEMU engine are built and linked.")
+
+                    Button { showImporter = true } label: {
+                        Label("Choose IPSW file", systemImage: "doc.badge.plus").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    if let importedIPSW {
+                        Label("Imported: \(importedIPSW)", systemImage: "checkmark.circle.fill")
+                            .font(.footnote).foregroundStyle(.green)
+                            .lineLimit(2)
+                    }
+
+                    Button {} label: {
+                        Label("Prepare device", systemImage: "arrow.down.to.line").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(true)
+                    Text("IPSW files can be copied into the app now. Firmware extraction, validation, and guest creation will be enabled after the iOS firmware engine is integrated.")
                         .font(.caption).foregroundStyle(.secondary)
-                }.padding(20)
-            }.navigationTitle("Prepare")
+                }
+                .padding(20)
+            }
+            .navigationTitle("Prepare")
+            .fileImporter(
+                isPresented: $showImporter,
+                allowedContentTypes: [UTType(filenameExtension: "ipsw") ?? .data],
+                allowsMultipleSelection: false
+            ) { result in
+                do {
+                    let url = try result.get()
+                    let accessed = url.startAccessingSecurityScopedResource()
+                    defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+                    let folder = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+                        .appendingPathComponent("ImportedIPSWs", isDirectory: true)
+                    try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                    let destination = folder.appendingPathComponent(url.lastPathComponent)
+                    if FileManager.default.fileExists(atPath: destination.path) {
+                        try FileManager.default.removeItem(at: destination)
+                    }
+                    try FileManager.default.copyItem(at: url, to: destination)
+                    importedIPSW = url.lastPathComponent
+                    importMessage = "Copied \(url.lastPathComponent) into LightTouch. Firmware preparation is not connected yet."
+                } catch {
+                    importMessage = "Could not import IPSW: \(error.localizedDescription)"
+                }
+                showImportAlert = true
+            }
+            .alert("IPSW import", isPresented: $showImportAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(importMessage)
+            }
         }
     }
 }

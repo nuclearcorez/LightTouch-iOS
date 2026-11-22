@@ -489,20 +489,19 @@ pub unsafe extern "C" fn lt_ios_context_close(
         return sys::LT_INVALID;
     }
     let value = unsafe { &*context };
-    match value.runtime.lock() {
-        Ok(slot) if slot.is_none() => {
-            drop(unsafe { Box::from_raw(context) });
-            sys::LT_OK
-        }
-        Ok(_) => {
-            unsafe { write_error(error_buffer, error_capacity, "destroy the guest runtime before closing the library") };
-            sys::LT_BUSY
-        }
+    let can_close = match value.runtime.lock() {
+        Ok(slot) => slot.is_none(),
         Err(_) => {
             unsafe { write_error(error_buffer, error_capacity, "runtime lock poisoned") };
-            sys::LT_BUSY
+            return sys::LT_BUSY;
         }
+    };
+    if !can_close {
+        unsafe { write_error(error_buffer, error_capacity, "destroy the guest runtime before closing the library") };
+        return sys::LT_BUSY;
     }
+    drop(unsafe { Box::from_raw(context) });
+    sys::LT_OK
 }
 
 #[unsafe(no_mangle)]

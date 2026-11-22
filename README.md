@@ -22,6 +22,7 @@ Both recorded on a Pixel 10. Click to watch on YouTube.
 | Linux | x86_64 AppImage | The desktop app. Prepares devices from an IPSW; accelerated graphics, audio, internet inside iOS, the Legacy Store and IPA installs work. Needs glibc 2.31 or later (Debian 11, Ubuntu 20.04 and newer). |
 | Windows | x86_64 EXE | The same app as on Linux, one file to download and run. Preparing devices, graphics, audio, Legacy Store installs and internet confirmed on Windows 10 and 11. |
 | macOS | Apple Silicon app ZIP | The same app as on Linux. Preparing devices, running them and Legacy Store installs checked on an M-series Mac; internet not yet. Needs macOS 26. The app isn't notarized: the first time, allow it in System Settings › Privacy & Security. |
+| iOS | Unsigned IPA (experimental UI shell) | Native SwiftUI app and CI packaging are being added. The QEMU runtime and firmware pipeline are not yet integrated; this is not a working emulator build. |
 
 ## Devices
 

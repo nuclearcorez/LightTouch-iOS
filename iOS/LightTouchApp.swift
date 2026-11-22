@@ -116,6 +116,56 @@ private struct FactTile: View {
     }
 }
 
+private struct DeviceProfileRow: View {
+    let profile: DeviceProfile
+    let isSelected: Bool
+    let onSelect: () -> Void
+
+    private var iconColor: Color { isSelected ? .blue : .gray }
+    private var fillColor: Color { isSelected ? Color.blue.opacity(0.12) : Color.white.opacity(0.04) }
+    private var borderColor: Color { isSelected ? Color.blue.opacity(0.5) : Color.white.opacity(0.06) }
+
+    var body: some View {
+        Button(action: onSelect) {
+            rowContent
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var rowContent: some View {
+        HStack(spacing: 12) {
+            deviceIcon
+            deviceDescription
+            Spacer(minLength: 8)
+            selectionIcon
+        }
+        .padding(14)
+        .background(fillColor, in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(borderColor, lineWidth: 1))
+    }
+
+    private var deviceIcon: some View {
+        Image(systemName: profile.id == "ipad1" ? "ipad" : "iphone")
+            .font(.title2)
+            .frame(width: 42)
+            .foregroundStyle(iconColor)
+    }
+
+    private var deviceDescription: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(profile.name).font(.subheadline.weight(.semibold)).foregroundStyle(.primary)
+            Text("Board: \(profile.board)").font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private var selectionIcon: some View {
+        if isSelected {
+            Image(systemName: "checkmark.circle.fill").foregroundStyle(.blue)
+        }
+    }
+}
+
 private struct PrepareView: View {
     @State private var selectedProfile = DeviceProfile.supported[0].id
     @State private var showImporter = false
@@ -134,25 +184,12 @@ private struct PrepareView: View {
                     EngineNotice()
                     Text("Choose a classic device").font(.title2.weight(.bold))
                     ForEach(DeviceProfile.supported) { item in
-                        Button { selectedProfile = item.id } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: item.id == "ipad1" ? "ipad" : "iphone")
-                                    .font(.title2).frame(width: 42)
-                                    .foregroundStyle(selectedProfile == item.id ? Color.blue : Color.gray)
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(item.name).font(.subheadline.weight(.semibold)).foregroundStyle(.primary)
-                                    Text("Board: \(item.board)").font(.caption).foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                if selectedProfile == item.id {
-                                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.blue)
-                                }
-                            }
-                            .padding(14)
-                            .background(selectedProfile == item.id ? Color.blue.opacity(0.12) : Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 14))
-                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(selectedProfile == item.id ? Color.blue.opacity(0.5) : Color.white.opacity(0.06), lineWidth: 1))
+                        DeviceProfileRow(
+                            profile: item,
+                            isSelected: selectedProfile == item.id
+                        ) {
+                            selectedProfile = item.id
                         }
-                        .buttonStyle(.plain)
                     }
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Known firmware profiles").font(.headline)

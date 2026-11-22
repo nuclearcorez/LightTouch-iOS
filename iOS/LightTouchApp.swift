@@ -225,7 +225,12 @@ private struct PrepareView: View {
                 allowsMultipleSelection: false
             ) { result in
                 do {
-                    let url = try result.get()
+                    let urls = try result.get()
+                    guard let url = urls.first else {
+                        importMessage = "No IPSW file was selected."
+                        showImportAlert = true
+                        return
+                    }
                     let accessed = url.startAccessingSecurityScopedResource()
                     defer { if accessed { url.stopAccessingSecurityScopedResource() } }
                     let folder = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]

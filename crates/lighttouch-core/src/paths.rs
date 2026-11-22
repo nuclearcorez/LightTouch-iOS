@@ -15,7 +15,7 @@ pub fn data_root() -> PathBuf {
             .unwrap_or_else(|| home().join(".local/share"));
         base.join("LightTouch")
     }
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", target_os = "ios"))]
     {
         home().join("Library/Application Support/LightTouch")
     }

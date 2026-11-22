@@ -1,0 +1,81 @@
+name: iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "ios/**"
+      - "main"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-ipa-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-ipa:
+    name: Build unsigned iOS IPA
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v5
+
+      - name: Check Apple toolchain
+        run: |
+          set -euo pipefail
+          xcode-select -p
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: iOS
+        run: xcodegen generate
+
+      - name: Build for iOS devices
+        working-directory: iOS
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project LightTouch.xcodeproj \
+            -scheme LightTouch \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/LightTouchDerived" \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Package unsigned IPA
+        run: |
+          set -euo pipefail
+          APP="$RUNNER_TEMP/LightTouchDerived/Build/Products/Release-iphoneos/LightTouch.app"
+          test -d "$APP"
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -R "$APP" "$RUNNER_TEMP/ipa/Payload/LightTouch.app"
+          (cd "$RUNNER_TEMP/ipa" && /usr/bin/zip -qry "$GITHUB_WORKSPACE/LightTouch-iOS-unsigned.ipa" Payload)
+          test -s "$GITHUB_WORKSPACE/LightTouch-iOS-unsigned.ipa"
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v6
+        with:
+          name: LightTouch-iOS-unsigned
+          path: LightTouch-iOS-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload build diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ios-build-diagnostics
+          path: |
+            ${{ runner.temp }}/LightTouchDerived/Logs/**
+            ${{ runner.temp }}/LightTouchDerived/Build/Intermediates.noindex/**
+          if-no-files-found: ignore
+          retention-days: 7

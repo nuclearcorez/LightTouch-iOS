@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <stdlib.h>
 #include <string>
 #include <fcntl.h>
 #include <sys/stat.h>

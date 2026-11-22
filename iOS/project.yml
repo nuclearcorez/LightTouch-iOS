@@ -1,0 +1,30 @@
+name: LightTouch
+options:
+  bundleIdPrefix: org.nuclearcorez
+  deploymentTarget:
+    iOS: "17.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    SUPPORTS_MACCATALYST: "NO"
+    GENERATE_INFOPLIST_FILE: "YES"
+    INFOPLIST_KEY_CFBundleDisplayName: "LightTouch"
+    INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.utilities"
+    INFOPLIST_KEY_UIUserInterfaceStyle: "Dark"
+    INFOPLIST_KEY_UIApplicationSceneManifest_Generation: "YES"
+targets:
+  LightTouch:
+    type: application
+    platform: iOS
+    sources:
+      - path: .
+        excludes:
+          - project.yml
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.nuclearcorez.lighttouch
+        PRODUCT_NAME: LightTouch
+        CODE_SIGNING_ALLOWED: "NO"
+        SWIFT_EMIT_LOC_STRINGS: "YES"

@@ -39,7 +39,7 @@
 #include <dlfcn.h>
 #include <sys/file.h>
 #include <unistd.h>
-#if defined(__linux__) || defined(__ANDROID__) || defined(__APPLE__)
+#if defined(__linux__) || defined(__ANDROID__)
 #include <sys/random.h>
 #endif
 #endif
@@ -465,24 +465,23 @@ inline bool exists(const char *path) { return ::access(path, F_OK) == 0; }
 inline int pid() { return int(::getpid()); }
 
 inline int random_bytes(void *buffer, size_t size) {
+#ifdef __APPLE__
+    // arc4random_buf is backed by the system CSPRNG and is available on both macOS and iOS.
+    arc4random_buf(buffer, size);
+    return 0;
+#else
     auto *b = static_cast<unsigned char *>(buffer);
     size_t offset = 0;
     while (offset < size) {
-#ifdef __APPLE__
-        size_t chunk = size - offset > 256 ? 256 : size - offset;
-        if (getentropy(b + offset, chunk) != 0)
-            return -1;
-        offset += chunk;
-#else
         ssize_t n = getrandom(b + offset, size - offset, 0);
         if (n < 0 && errno == EINTR)
             continue;
         if (n <= 0)
             return -1;
         offset += size_t(n);
-#endif
     }
     return 0;
+#endif
 }
 
 using Library = void *;
